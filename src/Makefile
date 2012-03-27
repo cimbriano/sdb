@@ -1,0 +1,37 @@
+CPATH = ../lib/bcprov-jdk15on-147.jar:.
+BLD = .
+SRC = .
+
+JAVAOPTS = -classpath $(CPATH)
+JAVAC = javac
+
+CLASSES = TransException.class \
+          Account.class \
+          AccountDB.class \
+          AccountException.class \
+          ATMCard.class \
+          ATMClient.class \
+          ATMSession.class \
+          BankKeys.class \
+          BankServer.class \
+          BankSession.class \
+          Crypto.class \
+          Disk.class \
+          KeyGen.class \
+          Log.class \
+          LogInterface.class \
+          MakeAccounts.class \
+          Message.class \
+          Session.class \
+          SignedMessage.class 
+
+.PHONY: all clean
+
+all: $(CLASSES)
+
+clean:
+	rm -fv $(CLASSES)
+
+%.class: %.java
+	$(JAVAC) $(JAVAOPTS) $<
+
