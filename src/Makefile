@@ -23,7 +23,10 @@ CLASSES = TransException.class \
           MakeAccounts.class \
           Message.class \
           Session.class \
-          SignedMessage.class 
+          SignedMessage.class \
+          ProtocolMessage.class \
+          ProtocolType.class \
+          Auth_Init.class
 
 .PHONY: all clean
 

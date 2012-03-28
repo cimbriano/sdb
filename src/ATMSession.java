@@ -50,6 +50,18 @@ public class ATMSession implements Session {
 	    return false;
 	}
 
+	try {
+	    Auth_Init authInit = new Auth_Init(card.getAcctNum());
+	    SignedMessage msg = new SignedMessage(authInit, kUser, crypto);
+	    byte[] ciphertxt = crypto.encryptRSA(authInit, kBank);
+
+	    System.out.println(msg.msg.length);
+
+	    //os.writeObject(ciphertxt);
+
+	} catch (Exception e) {
+	}
+
 	// Implement the client half of the authentication protocol here
 	return false;
     }

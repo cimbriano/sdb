@@ -55,6 +55,19 @@ public class BankSession implements Session, Runnable {
     // (3) Maintain a log of whether the login attempt succeeded
     // (4) Returns true if the user authentication succeeds, false otherwise
     public boolean authenticateUser() {
+	try {
+	    //String s = (String) is.readObject();
+
+	    //System.out.print(s);
+
+	    ProtocolMessage msg = (ProtocolMessage) is.readObject();
+
+	    if (msg.type == ProtocolType.AUTH_INIT) {
+		System.out.println( ((Auth_Init)msg).accNumber );
+		
+	    }
+
+	} catch (Exception e) {}
 
 	// replace this with the appropriate code
 	return false;
