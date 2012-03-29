@@ -50,20 +50,76 @@ public class ATMSession implements Session {
 	    return false;
 	}
 
+	// Implement the client half of the authentication protocol here
+	return authenticate();
+    }
+
+    private boolean authenticate() {
+	SecureRandom sr = new SecureRandom();
+	int seqNumber = sr.nextInt();
+
 	try {
-	    Auth_Init authInit = new Auth_Init(card.getAcctNum());
-	    SignedMessage msg = new SignedMessage(authInit, kUser, crypto);
-	    byte[] ciphertxt = crypto.encryptRSA(authInit, kBank);
+	    AuthInit a = new AuthInit(card.getAcctNum(), ID, seqNumber++);
+	    byte[] txt = crypto.encryptRSA(a, kBank);
 
-	    System.out.println(msg.msg.length);
+	    os.writeObject(txt);
 
-	    //os.writeObject(ciphertxt);
+	    /*
+	     *
+	     */
 
-	} catch (Exception e) {
+	    byte[] e = (byte[]) is.readObject();
+	    Challenge c = (Challenge) crypto.decryptRSA(e, kUser);
+
+	    /*
+	     *
+	     */
+
+	    Response r = new Response(c.nonce, seqNumber++);
+	    txt = crypto.encryptRSA(r, kBank);
+
+	    os.writeObject(txt);
+
+	    /*
+	     *
+	     */
+
+	    c = new Challenge(sr.nextInt(), seqNumber++);
+	    txt = crypto.encryptRSA(c, kBank);
+
+	    os.writeObject(txt);
+
+	    /*
+	     *
+	     */
+
+	    e = (byte[]) is.readObject();
+	    r = (Response) crypto.decryptRSA(e, kUser);
+
+	    if (r.nonce != c.nonce)
+		return false;
+
+	    /*
+	     *
+	     */
+
+	    e = (byte[]) is.readObject();
+	    kSession = (Key) crypto.decryptRSA(e, kUser);
+
+	    System.out.println("Authenticated! Received session key.");
+	    
+	} catch (KeyException e) {
+	    e.printStackTrace();
+	    return false;
+	} catch (IOException e) {
+	    e.printStackTrace();
+	    return false;
+	} catch (ClassNotFoundException e) {
+	    e.printStackTrace();
+	    return false;
 	}
 
-	// Implement the client half of the authentication protocol here
-	return false;
+	return true;
     }
 
     void printMenu() {

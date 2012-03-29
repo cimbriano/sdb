@@ -55,22 +55,97 @@ public class BankSession implements Session, Runnable {
     // (3) Maintain a log of whether the login attempt succeeded
     // (4) Returns true if the user authentication succeeds, false otherwise
     public boolean authenticateUser() {
+	SecureRandom sr = new SecureRandom();
+	int seqNumber = sr.nextInt();
+
 	try {
-	    //String s = (String) is.readObject();
+	    print("Waiting for an AuthInit...");
 
-	    //System.out.print(s);
+	    byte[] e = (byte[]) is.readObject();
+	    AuthInit a = (AuthInit) crypto.decryptRSA(e, kPrivBank);
 
-	    ProtocolMessage msg = (ProtocolMessage) is.readObject();
+	    currAcct = accts.getAccount(a.accNumber);
+	    atmID = a.atmID;
 
-	    if (msg.type == ProtocolType.AUTH_INIT) {
-		System.out.println( ((Auth_Init)msg).accNumber );
-		
+	    PublicKey kUser = currAcct.getKey();
+
+	    /*
+	     *
+	     */
+
+	    print("Got an AuthInit, sending challenge.");
+
+	    Challenge c = new Challenge(sr.nextInt(), seqNumber++);
+	    byte[] txt = crypto.encryptRSA(c, kUser);
+
+	    os.writeObject(txt);
+
+	    /*
+	     *
+	     */
+
+	    print("Received response.");
+
+	    e = (byte[]) is.readObject();
+	    Response r = (Response) crypto.decryptRSA(e, kPrivBank);
+
+	    if (ProtocolMessage.validate(a, r) == false)
+		return false;
+
+	    if (c.nonce != r.nonce) {
+		print("Challenge failed.");
+		return false;
 	    }
 
-	} catch (Exception e) {}
+	    print("Challenge passed.");
 
-	// replace this with the appropriate code
-	return false;
+	    /*
+	     *
+	     */
+
+	    e = (byte[]) is.readObject();
+	    c = (Challenge) crypto.decryptRSA(e, kPrivBank);
+
+	    if (ProtocolMessage.validate(r, c) == false)
+		return false;
+
+	    /*
+	     *
+	     */
+
+	    r = new Response(c.nonce, seqNumber++);
+	    txt = crypto.encryptRSA(r, kUser);
+
+	    os.writeObject(txt);
+
+	    /*
+	     *
+	     */
+
+	    print("Authenticated! Sending session key.");
+
+	    kSession = crypto.makeAESKey();
+	    txt = crypto.encryptRSA(kSession, kUser);
+
+	    os.writeObject(txt);
+
+	    System.out.println(kSession);
+	    	    
+	} catch (IOException e) {
+	    e.printStackTrace();
+	    return false;
+	} catch (ClassNotFoundException e) {
+	    e.printStackTrace();
+	    return false;
+	} catch (KeyException e) {
+	    e.printStackTrace();
+	    return false;
+	} catch (AccountException e) {
+	    e.printStackTrace();
+	    return false;
+	}
+
+	return true;
     }
 
     // Interacts with an ATMclient to 
@@ -81,6 +156,10 @@ public class BankSession implements Session, Runnable {
 
 	// replace this code to carry out a bank transaction
 	return false;
+    }
+
+    private void print(String txt) {
+	System.out.println(txt);
     }
 }
 

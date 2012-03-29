@@ -25,8 +25,9 @@ CLASSES = TransException.class \
           Session.class \
           SignedMessage.class \
           ProtocolMessage.class \
-          ProtocolType.class \
-          Auth_Init.class
+          AuthInit.class \
+          Challenge.class \
+          Response.class
 
 .PHONY: all clean
 
