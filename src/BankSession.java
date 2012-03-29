@@ -18,6 +18,8 @@ public class BankSession implements Session, Runnable {
     private String atmID;
 
     // Add additional fields you need here
+    private PublicKey kPubUser;
+    private int seqNumber;
 
     BankSession(Socket s, AccountDB a, KeyPair p)
 	throws IOException
@@ -56,81 +58,68 @@ public class BankSession implements Session, Runnable {
     // (4) Returns true if the user authentication succeeds, false otherwise
     public boolean authenticateUser() {
 	SecureRandom sr = new SecureRandom();
-	int seqNumber = sr.nextInt();
+	seqNumber = sr.nextInt();
 
 	try {
-	    print("Waiting for an AuthInit...");
-
-	    byte[] e = (byte[]) is.readObject();
-	    AuthInit a = (AuthInit) crypto.decryptRSA(e, kPrivBank);
+	    System.out.println("Waiting for an AuthInit...");
+	    
+	    AuthInit a = (AuthInit) crypto.decryptRSA(nextObject(), kPrivBank);
 
 	    currAcct = accts.getAccount(a.accNumber);
 	    atmID = a.atmID;
-
-	    PublicKey kUser = currAcct.getKey();
+	    kPubUser = currAcct.getKey();
 
 	    /*
 	     *
 	     */
 
-	    print("Got an AuthInit, sending challenge.");
+	    System.out.println("Got an AuthInit; sending challenge.");
 
 	    Challenge c = new Challenge(sr.nextInt(), seqNumber++);
-	    byte[] txt = crypto.encryptRSA(c, kUser);
-
-	    os.writeObject(txt);
+	    os.writeObject( crypto.encryptRSA(c, kPubUser) );
 
 	    /*
 	     *
 	     */
 
-	    print("Received response.");
+	    Response r = (Response) crypto.decryptRSA(nextObject(), kPrivBank);
 
-	    e = (byte[]) is.readObject();
-	    Response r = (Response) crypto.decryptRSA(e, kPrivBank);
+	    System.out.print("Received response; ");
 
-	    if (ProtocolMessage.validate(a, r) == false)
+	    if (ProtocolMessage.validate(a, r) == false) {
 		return false;
-
-	    if (c.nonce != r.nonce) {
-		print("Challenge failed.");
+	    } else if (c.nonce != r.nonce) {
+		System.out.println("challenge failed.");
 		return false;
 	    }
 
-	    print("Challenge passed.");
+	    System.out.println("challenge passed.");
 
 	    /*
 	     *
 	     */
+	    
+	    System.out.print("Waiting for challenge; ");
 
-	    e = (byte[]) is.readObject();
-	    c = (Challenge) crypto.decryptRSA(e, kPrivBank);
+	    c = (Challenge) crypto.decryptRSA(nextObject(), kPrivBank);
 
 	    if (ProtocolMessage.validate(r, c) == false)
 		return false;
 
-	    /*
-	     *
-	     */
-
 	    r = new Response(c.nonce, seqNumber++);
-	    txt = crypto.encryptRSA(r, kUser);
 
-	    os.writeObject(txt);
+	    os.writeObject( crypto.encryptRSA(r, kPubUser) );
+
+	    System.out.println("answered.");
 
 	    /*
 	     *
 	     */
 
-	    print("Authenticated! Sending session key.");
+	    System.out.println("Authenticated! Sending session key.");
 
 	    kSession = crypto.makeAESKey();
-	    txt = crypto.encryptRSA(kSession, kUser);
-
-	    os.writeObject(txt);
-
-	    System.out.println(kSession);
-	    	    
+	    os.writeObject( crypto.encryptRSA(kSession, kPubUser) );	    	    
 	} catch (IOException e) {
 	    e.printStackTrace();
 	    return false;
@@ -145,6 +134,9 @@ public class BankSession implements Session, Runnable {
 	    return false;
 	}
 
+	System.out.println("Initiated session with ACCT#" + currAcct.getNumber() +
+			   " on ATM " + atmID);
+
 	return true;
     }
 
@@ -153,13 +145,53 @@ public class BankSession implements Session, Runnable {
     // (2) or end transactions if end-of-session message is received
     // (3) Maintain a log of the information exchanged with the client
     public boolean doTransaction() {
+	try {
+	    byte[] e = (byte[]) is.readObject();
+	    SignedMessage m = (SignedMessage) crypto.decryptAES(e, kSession);
 
-	// replace this code to carry out a bank transaction
+	    if (crypto.verify(m.msg, m.signature, kPubUser) == false)
+		return false;
+
+	    ProtocolMessage pm = (ProtocolMessage) m.getObject();		
+
+	    if (pm instanceof MakeDeposit)
+		return doDeposit((MakeDeposit) pm);
+	    else if (pm instanceof MakeWithdrawal)
+		return doWithdrawal((MakeWithdrawal) pm);
+	    else if (pm instanceof CheckBalance)
+		return doBalance((CheckBalance) pm);
+
+	} catch (IOException e) {
+	    e.printStackTrace();
+	    return false;
+	} catch (ClassNotFoundException e) {
+	    e.printStackTrace();
+	    return false;
+	} catch (KeyException e) {
+	    e.printStackTrace();
+	    return false;
+	} catch (SignatureException e) {
+	    e.printStackTrace();
+	    return false;
+	}
+
+	return true;
+    }
+
+    private boolean doWithdrawal(MakeWithdrawal withdrawal) {
 	return false;
     }
 
-    private void print(String txt) {
-	System.out.println(txt);
+    private boolean doBalance(CheckBalance balance) {
+	return false;
+    }
+
+    private boolean doDeposit(MakeDeposit deposit) {
+	return false;
+    }
+
+    private byte[] nextObject() throws IOException, ClassNotFoundException {
+	return (byte[]) is.readObject();
     }
 }
 

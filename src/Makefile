@@ -27,7 +27,10 @@ CLASSES = TransException.class \
           ProtocolMessage.class \
           AuthInit.class \
           Challenge.class \
-          Response.class
+          Response.class \
+          MakeDeposit.class \
+          MakeWithdrawal.class \
+          CheckBalance.class
 
 .PHONY: all clean
 

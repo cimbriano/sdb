@@ -19,6 +19,7 @@ public class ATMSession implements Session {
     private Key kSession;
 
     // Additional fields here
+    private int seqNumber;
 
     ATMSession(Socket s, String ID, ATMCard card, PublicKey kBank) {
 	this.s = s;
@@ -56,7 +57,7 @@ public class ATMSession implements Session {
 
     private boolean authenticate() {
 	SecureRandom sr = new SecureRandom();
-	int seqNumber = sr.nextInt();
+	seqNumber = sr.nextInt();
 
 	try {
 	    AuthInit a = new AuthInit(card.getAcctNum(), ID, seqNumber++);
@@ -159,6 +160,22 @@ public class ATMSession implements Session {
     }
 
     void doDeposit() {
+	System.out.print("Enter deposit amount: ");
+
+	try {
+	    MakeDeposit d = new MakeDeposit(0, seqNumber++);
+	    Message m = new SignedMessage(d, kUser, crypto);
+
+	    byte[] txt = crypto.encryptAES(m, kSession);
+
+	    os.writeObject(txt);
+	} catch (SignatureException e) {
+	    e.printStackTrace();
+	} catch (KeyException e) {
+	    e.printStackTrace();
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
     }
 
     void doWithdrawal() {
