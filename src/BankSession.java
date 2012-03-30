@@ -85,7 +85,7 @@ public class BankSession implements Session, Runnable {
 
 	    System.out.print("Received response; ");
 
-	    if (ProtocolMessage.validate(a, r) == false) {
+	    if (ProtocolMessage.verify(a, r) == false) {
 		return false;
 	    } else if (c.nonce != r.nonce) {
 		System.out.println("challenge failed.");
@@ -102,7 +102,7 @@ public class BankSession implements Session, Runnable {
 
 	    c = (Challenge) crypto.decryptRSA(nextObject(), kPrivBank);
 
-	    if (ProtocolMessage.validate(r, c) == false)
+	    if (ProtocolMessage.verify(r, c) == false)
 		return false;
 
 	    r = new Response(c.nonce, seqNumber++);
@@ -154,7 +154,7 @@ public class BankSession implements Session, Runnable {
 
 	    ProtocolMessage pm = (ProtocolMessage) m.getObject();
 
-	    //if (ProtocolMessage.validate
+	    //if (ProtocolMessage.validate())
 
 	    if (pm instanceof MakeDeposit)
 		return doDeposit((MakeDeposit) pm);
@@ -209,6 +209,8 @@ public class BankSession implements Session, Runnable {
     }
 
     private boolean quit(Quit msg) {
+	System.out.println("Ending session!");
+
 	return false;
     }
 

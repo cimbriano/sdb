@@ -10,7 +10,7 @@ public abstract class ProtocolMessage implements Serializable {
 
     private static final int TIME_OUT = 60 * 1000; //1 minute
 
-    public static boolean validate(ProtocolMessage p1, ProtocolMessage p2) {
+    public static boolean verify(ProtocolMessage p1, ProtocolMessage p2) {
 	long elapse = p2.time - p1.time;
 
 	if (p1.sequenceNumber+1 == p2.sequenceNumber)
