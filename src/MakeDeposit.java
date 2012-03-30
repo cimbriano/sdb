@@ -1,9 +1,9 @@
 import java.security.*;
 
 public class MakeDeposit extends ProtocolMessage {
-    public int depositAmt;
+    public double depositAmt;
 
-    public MakeDeposit(int amt, int seq) {
+    public MakeDeposit(double amt, int seq) {
 	sequenceNumber = seq;
 	depositAmt = amt;
     }

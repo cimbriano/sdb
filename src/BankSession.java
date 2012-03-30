@@ -21,9 +21,7 @@ public class BankSession implements Session, Runnable {
     private PublicKey kPubUser;
     private int seqNumber;
 
-    BankSession(Socket s, AccountDB a, KeyPair p)
-	throws IOException
-    {
+    BankSession(Socket s, AccountDB a, KeyPair p) throws IOException {
 	this.s = s;
 	OutputStream out =  s.getOutputStream();
 	this.os = new ObjectOutputStream(out);
@@ -44,8 +42,7 @@ public class BankSession implements Session, Runnable {
 	    }
 	    is.close();
 	    os.close();
-	} 
-	catch (Exception e) {
+	} catch (Exception e) {
 	    e.printStackTrace();
 	}
     }
@@ -61,6 +58,7 @@ public class BankSession implements Session, Runnable {
 	seqNumber = sr.nextInt();
 
 	try {
+
 	    System.out.println("Waiting for an AuthInit...");
 	    
 	    AuthInit a = (AuthInit) crypto.decryptRSA(nextObject(), kPrivBank);
@@ -119,25 +117,25 @@ public class BankSession implements Session, Runnable {
 	    System.out.println("Authenticated! Sending session key.");
 
 	    kSession = crypto.makeAESKey();
-	    os.writeObject( crypto.encryptRSA(kSession, kPubUser) );	    	    
+	    os.writeObject( crypto.encryptRSA(kSession, kPubUser) );
+
+	    System.out.println("Initiated session with ACCT#" +
+			       currAcct.getNumber() + " on ATM " +
+			       atmID);
+
+	    return true;
+
 	} catch (IOException e) {
 	    e.printStackTrace();
-	    return false;
 	} catch (ClassNotFoundException e) {
 	    e.printStackTrace();
-	    return false;
 	} catch (KeyException e) {
 	    e.printStackTrace();
-	    return false;
 	} catch (AccountException e) {
 	    e.printStackTrace();
-	    return false;
 	}
 
-	System.out.println("Initiated session with ACCT#" + currAcct.getNumber() +
-			   " on ATM " + atmID);
-
-	return true;
+	return false;
     }
 
     // Interacts with an ATMclient to 
@@ -146,8 +144,9 @@ public class BankSession implements Session, Runnable {
     // (3) Maintain a log of the information exchanged with the client
     public boolean doTransaction() {
 	try {
-	    byte[] e = (byte[]) is.readObject();
-	    SignedMessage m = (SignedMessage) crypto.decryptAES(e, kSession);
+
+	    SignedMessage m = (SignedMessage) crypto.decryptAES(nextObject(),
+								kSession);
 
 	    if (crypto.verify(m.msg, m.signature, kPubUser) == false)
 		return false;
@@ -160,33 +159,53 @@ public class BankSession implements Session, Runnable {
 		return doWithdrawal((MakeWithdrawal) pm);
 	    else if (pm instanceof CheckBalance)
 		return doBalance((CheckBalance) pm);
+	    else if (pm instanceof Quit)
+		return quit((Quit) pm);
 
 	} catch (IOException e) {
 	    e.printStackTrace();
-	    return false;
 	} catch (ClassNotFoundException e) {
 	    e.printStackTrace();
-	    return false;
 	} catch (KeyException e) {
 	    e.printStackTrace();
-	    return false;
 	} catch (SignatureException e) {
 	    e.printStackTrace();
-	    return false;
+	} catch (TransException e) {
+	    e.printStackTrace();
 	}
 
+	return false;
+    }
+
+    private boolean doWithdrawal(MakeWithdrawal w)
+	throws SignatureException, KeyException, IOException, TransException {
+
+	currAcct.withdraw(w.withdrawalAmt);
+
+	return doBalance(null);
+    }
+
+    private boolean doBalance(CheckBalance b)
+	throws SignatureException, KeyException, IOException {
+
+	ProtocolMessage pm = new TransactionResponse(currAcct.getBalance(),
+						     seqNumber++);
+	Message m = new SignedMessage(pm, kPrivBank, crypto);
+
+	os.writeObject( crypto.encryptAES(m, kSession) );
+	
 	return true;
     }
 
-    private boolean doWithdrawal(MakeWithdrawal withdrawal) {
-	return false;
+    private boolean doDeposit(MakeDeposit d)
+	throws SignatureException, KeyException, IOException {
+
+	currAcct.deposit(d.depositAmt);
+	    
+	return doBalance(null);
     }
 
-    private boolean doBalance(CheckBalance balance) {
-	return false;
-    }
-
-    private boolean doDeposit(MakeDeposit deposit) {
+    private boolean quit(Quit msg) {
 	return false;
     }
 

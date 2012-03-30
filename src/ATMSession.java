@@ -162,8 +162,16 @@ public class ATMSession implements Session {
     void doDeposit() {
 	System.out.print("Enter deposit amount: ");
 
+	double amt = getDouble();
+
+	if (amt <= 0) {
+	    System.out.println("Please enter a valid amount!");
+	    return;
+	}
+	    
+
 	try {
-	    MakeDeposit d = new MakeDeposit(0, seqNumber++);
+	    MakeDeposit d = new MakeDeposit(amt, seqNumber++);
 	    Message m = new SignedMessage(d, kUser, crypto);
 
 	    byte[] txt = crypto.encryptAES(m, kSession);
