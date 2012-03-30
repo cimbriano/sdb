@@ -20,6 +20,7 @@ public class BankSession implements Session, Runnable {
     // Add additional fields you need here
     private PublicKey kPubUser;
     private int seqNumber;
+    private ProtocolMessage prevMsg;
 
     BankSession(Socket s, AccountDB a, KeyPair p) throws IOException {
 	this.s = s;
@@ -119,7 +120,7 @@ public class BankSession implements Session, Runnable {
 	    kSession = crypto.makeAESKey();
 	    os.writeObject( crypto.encryptRSA(kSession, kPubUser) );
 
-	    System.out.println("Initiated session with ACCT#" +
+	    System.out.println("Initiated session with ACCT#" + 
 			       currAcct.getNumber() + " on ATM " +
 			       atmID);
 
@@ -151,7 +152,9 @@ public class BankSession implements Session, Runnable {
 	    if (crypto.verify(m.msg, m.signature, kPubUser) == false)
 		return false;
 
-	    ProtocolMessage pm = (ProtocolMessage) m.getObject();		
+	    ProtocolMessage pm = (ProtocolMessage) m.getObject();
+
+	    //if (ProtocolMessage.validate
 
 	    if (pm instanceof MakeDeposit)
 		return doDeposit((MakeDeposit) pm);
