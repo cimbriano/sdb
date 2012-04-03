@@ -167,27 +167,27 @@ public class BankSession implements Session, Runnable {
 	    SignedMessage m = (SignedMessage) crypto.decryptAES(nextObject(), kSession);
 
 	    if (crypto.verify(m.msg, m.signature, kPubUser) == false) {
-		log.write(new TranMessage("Signature match failed (possible man-in-the-middle attack).", session));
+		log.write(new TranMessage("Signature match failed (possible man-in-the-middle attack).", session, m));
 		return false;
 	    }
 
 	    ProtocolMessage pm = (ProtocolMessage) m.getObject();
 
 	    if (ProtocolMessage.verify(prevMsg, pm) == false) {
-		log.write(new TranMessage("Out-of-order or stale messages (possible replay attack).", session));
+		log.write(new TranMessage("Out-of-order or stale messages (possible replay attack).", session, m));
 		return false;
 	    } else {
 		prevMsg = pm;
 	    }
 
 	    if (pm instanceof MakeDeposit)
-		return doDeposit((MakeDeposit) pm);
+		return doDeposit((MakeDeposit) pm, m);
 	    else if (pm instanceof MakeWithdrawal)
-		return doWithdrawal((MakeWithdrawal) pm);
+		return doWithdrawal((MakeWithdrawal) pm, m);
 	    else if (pm instanceof CheckBalance)
-		return doBalance((CheckBalance) pm);
+		return doBalance((CheckBalance) pm, m);
 	    else if (pm instanceof Quit)
-		return quit((Quit) pm);
+		return quit((Quit) pm, m);
 
 	} catch (IOException e) {
 	    e.printStackTrace();
@@ -202,8 +202,8 @@ public class BankSession implements Session, Runnable {
 	return false;
     }
 
-    private boolean doWithdrawal(MakeWithdrawal w) throws SignatureException, KeyException, IOException {
-	log.write(new TranMessage("Withdraw requested (" + w.withdrawalAmt + ").", session));
+    private boolean doWithdrawal(MakeWithdrawal w, SignedMessage m) throws SignatureException, KeyException, IOException {
+	log.write(new TranMessage("Withdraw requested (" + w.withdrawalAmt + ").", session, m));
 
 	try {
 	    currAcct.withdraw(w.withdrawalAmt);
@@ -212,27 +212,27 @@ public class BankSession implements Session, Runnable {
 	    return true;
 	}
 
-	return doBalance(null);
+	return doBalance(null, m);
     }
 
-    private boolean doBalance(CheckBalance b) throws SignatureException, KeyException, IOException {
-	log.write(new TranMessage("Balance requested.", session));
+    private boolean doBalance(CheckBalance b, SignedMessage m) throws SignatureException, KeyException, IOException {
+	log.write(new TranMessage("Balance requested.", session, m));
 
 	sendSignedMessage( new TransactionResponse(currAcct.getBalance(), seqNumber++) );
 	
 	return true;
     }
 
-    private boolean doDeposit(MakeDeposit d) throws SignatureException, KeyException, IOException {
-	log.write(new TranMessage("Withdraw requested (" + d.depositAmt + ").", session));
+    private boolean doDeposit(MakeDeposit d, SignedMessage m) throws SignatureException, KeyException, IOException {
+	log.write(new TranMessage("Deposit requested (" + d.depositAmt + ").", session, m));
 
 	currAcct.deposit(d.depositAmt);
 	    
-	return doBalance(null);
+	return doBalance(null, m);
     }
 
-    private boolean quit(Quit msg) {
-	log.write(new TranMessage("Session ended by client.", session));
+    private boolean quit(Quit msg, SignedMessage m) {
+	log.write(new TranMessage("Session ended by client.", session, m));
 
 	accts.save();
 

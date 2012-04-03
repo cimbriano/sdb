@@ -1,5 +1,9 @@
 public class TranMessage extends LogMessage {
-    public TranMessage(String message, int session) {
-	super(message, session);
+
+        private SignedMessage signedMsg;
+
+    public TranMessage(String message, int session, SignedMessage msg) {
+       	super(message, session);
+	signedMsg = msg;	
     }
 }
