@@ -22,6 +22,8 @@ public class BankServer {
 
 
     public static void main(String[] args) {
+	int thread = 0;
+
 	try {
 	    AccountDB accts = AccountDB.load();
 	    ServerSocket serverS = new ServerSocket(2100);
@@ -31,7 +33,7 @@ public class BankServer {
 	    while (true) {
 		try {
 		    Socket s = serverS.accept();
-		    BankSession session = new BankSession(s, accts, pair);
+		    BankSession session = new BankSession(s, accts, pair, thread++);
 		    new Thread(session).start();
 		} catch (IOException e) {
 		    log.write(e);

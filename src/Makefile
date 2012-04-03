@@ -32,7 +32,8 @@ CLASSES = TransException.class \
           MakeWithdrawal.class \
           CheckBalance.class \
           Quit.class \
-          TransactionResponse.class
+          TransactionResponse.class \
+          LogMessage.class
 
 .PHONY: all clean
 

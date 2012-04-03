@@ -21,8 +21,12 @@ public class BankSession implements Session, Runnable {
     private PublicKey kPubUser;
     private int seqNumber;
     private ProtocolMessage prevMsg;
+    private Log log;
+    private int session;
 
-    BankSession(Socket s, AccountDB a, KeyPair p) throws IOException {
+    private static final String logFile = "log.bin";
+
+    BankSession(Socket s, AccountDB a, KeyPair p, int session) throws IOException {
 	this.s = s;
 	OutputStream out =  s.getOutputStream();
 	this.os = new ObjectOutputStream(out);
@@ -32,6 +36,8 @@ public class BankSession implements Session, Runnable {
 	this.kPrivBank = p.getPrivate();
 	this.kPubBank = p.getPublic();
 	this.crypto = new Crypto();
+	this.log = new Log(logFile, this.kPubBank);
+	this.session = session;
     }
 
     public void run() {
@@ -60,7 +66,7 @@ public class BankSession implements Session, Runnable {
 
 	try {
 
-	    System.out.println("Waiting for an AuthInit...");
+	    log.write(new LogMessage(LogMessage.Type.AUTH, "Waiting for an AuthInit.", session));
 	    
 	    AuthInit a = (AuthInit) crypto.decryptRSA(nextObject(), kPrivBank);
 
@@ -72,7 +78,8 @@ public class BankSession implements Session, Runnable {
 	     *
 	     */
 
-	    System.out.println("Got an AuthInit; sending challenge.");
+	    log.write(new LogMessage(LogMessage.Type.AUTH, "Got an AuthInit (" + currAcct.getOwner() +
+				     " on ATM " + atmID + "), sending challenge.", session));
 
 	    Challenge c = new Challenge(sr.nextInt(), seqNumber++);
 	    os.writeObject( crypto.encryptRSA(c, kPubUser) );
@@ -83,22 +90,22 @@ public class BankSession implements Session, Runnable {
 
 	    Response r = (Response) crypto.decryptRSA(nextObject(), kPrivBank);
 
-	    System.out.print("Received response; ");
+	    log.write(new LogMessage(LogMessage.Type.AUTH, "Received response, checking.", session));
 
 	    if (ProtocolMessage.verify(a, r) == false) {
 		return false;
 	    } else if (c.nonce != r.nonce) {
-		System.out.println("challenge failed.");
+		log.write(new LogMessage(LogMessage.Type.AUTH, "Challenge failed.", session));
 		return false;
 	    }
 
-	    System.out.println("challenge passed.");
+	    log.write(new LogMessage(LogMessage.Type.AUTH, "Challenge passed.", session));
 
 	    /*
 	     *
 	     */
-	    
-	    System.out.print("Waiting for challenge; ");
+
+	    log.write(new LogMessage(LogMessage.Type.AUTH, "Waiting for challenge.", session));
 
 	    c = (Challenge) crypto.decryptRSA(nextObject(), kPrivBank);
 
@@ -109,20 +116,19 @@ public class BankSession implements Session, Runnable {
 
 	    os.writeObject( crypto.encryptRSA(r, kPubUser) );
 
-	    System.out.println("answered.");
+	    log.write(new LogMessage(LogMessage.Type.AUTH, "Challenge received and answered.", session));
 
 	    /*
 	     *
 	     */
 
-	    System.out.println("Authenticated! Sending session key.");
+	    log.write(new LogMessage(LogMessage.Type.AUTH, "Authenticated, sending session key.", session));
 
 	    kSession = crypto.makeAESKey();
 	    os.writeObject( crypto.encryptRSA(kSession, kPubUser) );
 
-	    System.out.println("Initiated session with ACCT#" + 
-			       currAcct.getNumber() + " on ATM " +
-			       atmID);
+	    log.write(new LogMessage(LogMessage.Type.AUTH, "Initiated session with ACCT#" +
+				     currAcct.getNumber() + " on ATM " + atmID + ".", session));
 
 	    return true;
 
@@ -183,6 +189,9 @@ public class BankSession implements Session, Runnable {
     private boolean doWithdrawal(MakeWithdrawal w)
 	throws SignatureException, KeyException, IOException, TransException {
 
+	log.write(new LogMessage(LogMessage.Type.TRANSACTION, "Withdraw requested (" +
+				 w.withdrawalAmt + ").", session));
+
 	currAcct.withdraw(w.withdrawalAmt);
 
 	return doBalance(null);
@@ -190,6 +199,8 @@ public class BankSession implements Session, Runnable {
 
     private boolean doBalance(CheckBalance b)
 	throws SignatureException, KeyException, IOException {
+
+	log.write(new LogMessage(LogMessage.Type.TRANSACTION, "Balance requested.", session));
 
 	ProtocolMessage pm = new TransactionResponse(currAcct.getBalance(),
 						     seqNumber++);
@@ -203,13 +214,18 @@ public class BankSession implements Session, Runnable {
     private boolean doDeposit(MakeDeposit d)
 	throws SignatureException, KeyException, IOException {
 
+	log.write(new LogMessage(LogMessage.Type.TRANSACTION, "Withdraw requested (" +
+				 d.depositAmt + ").", session));
+
 	currAcct.deposit(d.depositAmt);
 	    
 	return doBalance(null);
     }
 
     private boolean quit(Quit msg) {
-	System.out.println("Ending session!");
+	log.write(new LogMessage(LogMessage.Type.TRANSACTION, "Session ended by client.", session));
+
+	accts.save();
 
 	return false;
     }

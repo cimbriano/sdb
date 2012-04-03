@@ -3,7 +3,9 @@ import java.security.Key;
 import java.io.IOException;
 import java.io.Serializable;
 
-public class Log {
+import java.text.*;
+
+public class Log implements LogInterface {
 
     private String file;
     private Crypto crypto;
@@ -25,11 +27,30 @@ public class Log {
 	}
     }
 
-    public void write(Serializable obj) {
-	System.out.println(obj.toString());
+    public void write(LogMessage msg) {
+	SimpleDateFormat f = new SimpleDateFormat("MM/dd/yy kk:mm:ss");
 
-	// Add code to store to the log file
-	// ...
+	System.out.print("(" + msg.session + ") ");
+	System.out.print(f.format(msg.timestamp) + " : ");
+
+	if (msg.type == LogMessage.Type.AUTH)
+	    System.out.print("[AUTH]");
+	else if (msg.type == LogMessage.Type.TRANSACTION)
+	    System.out.print("[TRAN]");
+	else
+	    System.out.print("[    ]");
+
+	System.out.println(" " + msg.message);
+
+	write( (Serializable) msg );
+    }
+
+    public void write(Serializable obj) {
+	try {
+	    Disk.append(obj, file);
+	} catch (IOException e) {
+	    e.printStackTrace();
+	}
     }
 
 }
