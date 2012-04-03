@@ -68,8 +68,7 @@ public class ATMSession implements Session {
 	     *
 	     */
 
-	    Challenge c = (Challenge) crypto.decryptRSA(nextObject(),
-							kUser);
+	    Challenge c = (Challenge) crypto.decryptRSA(nextObject(), kUser);
 	    Response r = new Response(c.nonce, seqNumber++);
 
 	    os.writeObject( crypto.encryptRSA(r, kBank) );
@@ -99,6 +98,10 @@ public class ATMSession implements Session {
 
 	    System.out.println("Authenticated! Received session key.");
 
+	    TransactionResponse rsp = readSignedMessage();
+
+	    System.out.println(rsp.message);
+
 	    return true;
 	    
 	} catch (KeyException e) {
@@ -106,6 +109,8 @@ public class ATMSession implements Session {
 	} catch (IOException e) {
 	    e.printStackTrace();
 	} catch (ClassNotFoundException e) {
+	    e.printStackTrace();
+	} catch (SignatureException e) {
 	    e.printStackTrace();
 	}
 
@@ -172,9 +177,11 @@ public class ATMSession implements Session {
 
 		sendSignedMessage( new MakeDeposit(amt, seqNumber++) );
 		TransactionResponse r = readSignedMessage();
-
-		System.out.println("Deposit complete; new balance = " +
-				   r.balance);
+		
+		if (r.message == null)
+		    System.out.println("Deposit complete; new balance = " + r.balance);
+		else
+		    System.out.println(r.message);
 									    
 	    } catch (SignatureException e) {
 		e.printStackTrace();
@@ -203,9 +210,11 @@ public class ATMSession implements Session {
 		sendSignedMessage( new MakeWithdrawal(amt, seqNumber++) );
 		TransactionResponse r = readSignedMessage();
 
-		System.out.println("Withdraw complete; new balance = " +
-				   r.balance);
-									    
+		if (r.message == null)
+		    System.out.println("Withdraw complete; new balance = " + r.balance);
+		else
+		    System.out.println(r.message);
+
 	    } catch (SignatureException e) {
 		e.printStackTrace();
 	    } catch (KeyException e) {
@@ -251,11 +260,9 @@ public class ATMSession implements Session {
 	return true;
     }
 
-    private TransactionResponse readSignedMessage()
-	throws SignatureException, ClassNotFoundException, IOException, KeyException {
-
-	SignedMessage m = (SignedMessage) crypto.decryptAES(nextObject(),
-							    kSession);
+    private TransactionResponse readSignedMessage() throws SignatureException, ClassNotFoundException,
+							   IOException, KeyException {
+	SignedMessage m = (SignedMessage) crypto.decryptAES(nextObject(), kSession);
 
 	if (crypto.verify(m.msg, m.signature, kBank) == false)
 	    throw new SignatureException();
@@ -263,9 +270,7 @@ public class ATMSession implements Session {
 	return (TransactionResponse) m.getObject();
     }
 
-    private void sendSignedMessage(ProtocolMessage pm) 
-	throws SignatureException, KeyException, IOException {
-
+    private void sendSignedMessage(ProtocolMessage pm) throws SignatureException, KeyException, IOException {
 	Message m = new SignedMessage(pm, kUser, crypto);
 
 	os.writeObject( crypto.encryptAES(m, kSession) );

@@ -133,6 +133,13 @@ public class BankSession implements Session, Runnable {
 	    log.write(new AuthMessage("Initiated session with ACCT#" + currAcct.getNumber() +
 				      " on ATM " + atmID + ".", session));
 
+	    /*
+	     * Send welcome message to client
+	     */
+
+	    sendSignedMessage( new TransactionResponse("Welcome " + currAcct.getOwner() + "!", currAcct.getBalance(),
+						       seqNumber++) );
+
 	    return true;
 
 	} catch (IOException e) {
@@ -142,6 +149,8 @@ public class BankSession implements Session, Runnable {
 	} catch (KeyException e) {
 	    e.printStackTrace();
 	} catch (AccountException e) {
+	    e.printStackTrace();
+	} catch (SignatureException e) {
 	    e.printStackTrace();
 	}
 
