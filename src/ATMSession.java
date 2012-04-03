@@ -148,7 +148,7 @@ public class ATMSession implements Session {
     void endSession() {
 	try {
 
-	    sendMessage( new Quit(seqNumber++) );
+	    sendSignedMessage( new Quit(seqNumber++) );
 
 	} catch (SignatureException e) {
 	    e.printStackTrace();
@@ -170,8 +170,8 @@ public class ATMSession implements Session {
 	    
 	    try {
 
-		sendMessage( new MakeDeposit(amt, seqNumber++) );
-		TransactionResponse r = readMessage();
+		sendSignedMessage( new MakeDeposit(amt, seqNumber++) );
+		TransactionResponse r = readSignedMessage();
 
 		System.out.println("Deposit complete; new balance = " +
 				   r.balance);
@@ -200,8 +200,8 @@ public class ATMSession implements Session {
 	    
 	    try {
 
-		sendMessage( new MakeWithdrawal(amt, seqNumber++) );
-		TransactionResponse r = readMessage();
+		sendSignedMessage( new MakeWithdrawal(amt, seqNumber++) );
+		TransactionResponse r = readSignedMessage();
 
 		System.out.println("Withdraw complete; new balance = " +
 				   r.balance);
@@ -222,8 +222,8 @@ public class ATMSession implements Session {
     void doBalance() {
 	try {
 
-	    sendMessage( new CheckBalance(seqNumber++) );
-	    TransactionResponse r = readMessage();
+	    sendSignedMessage( new CheckBalance(seqNumber++) );
+	    TransactionResponse r = readSignedMessage();
 
 	    System.out.println("Balance = " + r.balance);
 
@@ -251,9 +251,9 @@ public class ATMSession implements Session {
 	return true;
     }
 
-    private TransactionResponse readMessage()
-	throws SignatureException, ClassNotFoundException, IOException,
-               KeyException {
+    private TransactionResponse readSignedMessage()
+	throws SignatureException, ClassNotFoundException, IOException, KeyException {
+
 	SignedMessage m = (SignedMessage) crypto.decryptAES(nextObject(),
 							    kSession);
 
@@ -263,8 +263,9 @@ public class ATMSession implements Session {
 	return (TransactionResponse) m.getObject();
     }
 
-    private void sendMessage(ProtocolMessage pm) 
+    private void sendSignedMessage(ProtocolMessage pm) 
 	throws SignatureException, KeyException, IOException {
+
 	Message m = new SignedMessage(pm, kUser, crypto);
 
 	os.writeObject( crypto.encryptAES(m, kSession) );

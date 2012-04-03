@@ -12,16 +12,11 @@ public class Log implements LogInterface {
     // You may add more state here.
     private PublicKey kPub;
 
-    public Log(String file, PublicKey key) 
-    {
+    public Log(String file, PublicKey key) {
 	try {
 	    this.crypto = new Crypto();
 	    this.file = file;
 	    this.kPub = key;
-
-	    // Initialize the log file
-	    // ...
-
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.exit(1);

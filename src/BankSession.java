@@ -24,8 +24,6 @@ public class BankSession implements Session, Runnable {
     private Log log;
     private int session;
 
-    private static final String logFile = "log.bin";
-
     BankSession(Socket s, AccountDB a, KeyPair p, int session) throws IOException {
 	this.s = s;
 	OutputStream out =  s.getOutputStream();
@@ -36,8 +34,9 @@ public class BankSession implements Session, Runnable {
 	this.kPrivBank = p.getPrivate();
 	this.kPubBank = p.getPublic();
 	this.crypto = new Crypto();
-	this.log = new Log(logFile, this.kPubBank);
+	this.log = new Log(BankServer.logFile, this.kPubBank);
 	this.session = session;
+	this.prevMsg = null;
     }
 
     public void run() {
@@ -78,8 +77,8 @@ public class BankSession implements Session, Runnable {
 	     *
 	     */
 
-	    log.write(new AuthMessage("Got an AuthInit (" + currAcct.getOwner() + " on ATM " +
-				      atmID + "), sending challenge.", session));
+	    log.write(new AuthMessage("Got an AuthInit (" + currAcct.getOwner() + " on ATM " + atmID +
+				      "), sending challenge.", session));
 
 	    Challenge c = new Challenge(sr.nextInt(), seqNumber++);
 	    os.writeObject( crypto.encryptRSA(c, kPubUser) );
@@ -93,13 +92,14 @@ public class BankSession implements Session, Runnable {
 	    log.write(new AuthMessage("Received response, checking.", session));
 
 	    if (ProtocolMessage.verify(a, r) == false) {
+		log.write(new AuthMessage("Out-of-order or stale messages (possible replay attack).", session));
 		return false;
 	    } else if (c.nonce != r.nonce) {
 		log.write(new AuthMessage("Challenge failed.", session));
 		return false;
+	    } else {
+		log.write(new AuthMessage("Challenge passed.", session));
 	    }
-
-	    log.write(new AuthMessage("Challenge passed.", session));
 
 	    /*
 	     *
@@ -109,14 +109,17 @@ public class BankSession implements Session, Runnable {
 
 	    c = (Challenge) crypto.decryptRSA(nextObject(), kPrivBank);
 
-	    if (ProtocolMessage.verify(r, c) == false)
+	    if (ProtocolMessage.verify(r, c) == false) {
+		log.write(new AuthMessage("Out-of-order or stale messages (possible replay attack).", session));
 		return false;
+	    }
 
 	    r = new Response(c.nonce, seqNumber++);
-
 	    os.writeObject( crypto.encryptRSA(r, kPubUser) );
 
 	    log.write(new AuthMessage("Challenge received and answered.", session));
+
+	    prevMsg = c;//save the last message seen from client
 
 	    /*
 	     *
@@ -152,15 +155,21 @@ public class BankSession implements Session, Runnable {
     public boolean doTransaction() {
 	try {
 
-	    SignedMessage m = (SignedMessage) crypto.decryptAES(nextObject(),
-								kSession);
+	    SignedMessage m = (SignedMessage) crypto.decryptAES(nextObject(), kSession);
 
-	    if (crypto.verify(m.msg, m.signature, kPubUser) == false)
+	    if (crypto.verify(m.msg, m.signature, kPubUser) == false) {
+		log.write(new TranMessage("Signature match failed (possible man-in-the-middle attack).", session));
 		return false;
+	    }
 
 	    ProtocolMessage pm = (ProtocolMessage) m.getObject();
 
-	    //if (ProtocolMessage.validate())
+	    if (ProtocolMessage.verify(prevMsg, pm) == false) {
+		log.write(new TranMessage("Out-of-order or stale messages (possible replay attack).", session));
+		return false;
+	    } else {
+		prevMsg = pm;
+	    }
 
 	    if (pm instanceof MakeDeposit)
 		return doDeposit((MakeDeposit) pm);
@@ -179,41 +188,34 @@ public class BankSession implements Session, Runnable {
 	    e.printStackTrace();
 	} catch (SignatureException e) {
 	    e.printStackTrace();
-	} catch (TransException e) {
-	    e.printStackTrace();
 	}
 
 	return false;
     }
 
-    private boolean doWithdrawal(MakeWithdrawal w)
-	throws SignatureException, KeyException, IOException, TransException {
+    private boolean doWithdrawal(MakeWithdrawal w) throws SignatureException, KeyException, IOException {
+	log.write(new TranMessage("Withdraw requested (" + w.withdrawalAmt + ").", session));
 
-	log.write(new TranMessage("Withdraw requested (" + w.withdrawalAmt + ").", session, w));
-
-	currAcct.withdraw(w.withdrawalAmt);
+	try {
+	    currAcct.withdraw(w.withdrawalAmt);
+	} catch (TransException e) {	    
+	    sendSignedMessage( new TransactionResponse(e.getMessage(), currAcct.getBalance(), seqNumber++) );
+	    return true;
+	}
 
 	return doBalance(null);
     }
 
-    private boolean doBalance(CheckBalance b)
-	throws SignatureException, KeyException, IOException {
+    private boolean doBalance(CheckBalance b) throws SignatureException, KeyException, IOException {
+	log.write(new TranMessage("Balance requested.", session));
 
-	log.write(new TranMessage("Balance requested.", session, b));
-
-	ProtocolMessage pm = new TransactionResponse(currAcct.getBalance(),
-						     seqNumber++);
-	Message m = new SignedMessage(pm, kPrivBank, crypto);
-
-	os.writeObject( crypto.encryptAES(m, kSession) );
+	sendSignedMessage( new TransactionResponse(currAcct.getBalance(), seqNumber++) );
 	
 	return true;
     }
 
-    private boolean doDeposit(MakeDeposit d)
-	throws SignatureException, KeyException, IOException {
-
-	log.write(new TranMessage("Withdraw requested (" + d.depositAmt + ").", session, d));
+    private boolean doDeposit(MakeDeposit d) throws SignatureException, KeyException, IOException {
+	log.write(new TranMessage("Withdraw requested (" + d.depositAmt + ").", session));
 
 	currAcct.deposit(d.depositAmt);
 	    
@@ -221,11 +223,18 @@ public class BankSession implements Session, Runnable {
     }
 
     private boolean quit(Quit msg) {
-	log.write(new TranMessage("Session ended by client.", session, msg));
+	log.write(new TranMessage("Session ended by client.", session));
 
 	accts.save();
 
 	return false;
+    }
+
+    private void sendSignedMessage(ProtocolMessage pm)
+	throws IOException, KeyException, SignatureException {
+
+	Message m = new SignedMessage(pm, kPrivBank, crypto);
+	os.writeObject( crypto.encryptAES(m, kSession) );
     }
 
     private byte[] nextObject() throws IOException, ClassNotFoundException {

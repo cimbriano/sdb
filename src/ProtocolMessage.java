@@ -8,7 +8,7 @@ public abstract class ProtocolMessage implements Serializable {
 	time = System.currentTimeMillis();
     }
 
-    private static final int TIME_OUT = 60 * 1000; //1 minute
+    private static final int TIME_OUT = 60 * 1000 * 10; //10 minutes
 
     public static boolean verify(ProtocolMessage p1, ProtocolMessage p2) {
 	long elapse = p2.time - p1.time;
