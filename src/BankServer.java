@@ -26,7 +26,7 @@ public class BankServer {
 
 	try {
 	    AccountDB accts = AccountDB.load();
-	    ServerSocket serverS = new ServerSocket(2102);
+	    ServerSocket serverS = new ServerSocket(2100);
 	    System.out.println("--------------------------");
 	    System.out.println("  Bank Server is Running  ");
 	    System.out.println("--------------------------");
