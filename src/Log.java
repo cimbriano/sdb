@@ -1,5 +1,4 @@
-import java.security.PublicKey;
-import java.security.Key;
+import java.security.*;
 import java.io.IOException;
 import java.io.Serializable;
 
@@ -11,12 +10,14 @@ public class Log implements LogInterface {
     private Crypto crypto;
 
     // You may add more state here.
+    private PublicKey kPub;
 
     public Log(String file, PublicKey key) 
     {
 	try {
 	    this.crypto = new Crypto();
 	    this.file = file;
+	    this.kPub = key;
 
 	    // Initialize the log file
 	    // ...
@@ -33,9 +34,9 @@ public class Log implements LogInterface {
 	System.out.print("(" + msg.session + ") ");
 	System.out.print(f.format(msg.timestamp) + " : ");
 
-	if (msg.type == LogMessage.Type.AUTH)
+	if (msg instanceof AuthMessage)
 	    System.out.print("[AUTH]");
-	else if (msg.type == LogMessage.Type.TRANSACTION)
+	else if (msg instanceof TranMessage)
 	    System.out.print("[TRAN]");
 	else
 	    System.out.print("[    ]");
@@ -47,8 +48,12 @@ public class Log implements LogInterface {
 
     public void write(Serializable obj) {
 	try {
-	    Disk.append(obj, file);
+	    byte[] e = crypto.encryptRSA(obj, kPub);
+
+	    Disk.append(e, file);
 	} catch (IOException e) {
+	    e.printStackTrace();
+	} catch (KeyException e) {
 	    e.printStackTrace();
 	}
     }

@@ -66,7 +66,7 @@ public class BankSession implements Session, Runnable {
 
 	try {
 
-	    log.write(new LogMessage(LogMessage.Type.AUTH, "Waiting for an AuthInit.", session));
+	    log.write(new AuthMessage("Waiting for an AuthInit.", session));
 	    
 	    AuthInit a = (AuthInit) crypto.decryptRSA(nextObject(), kPrivBank);
 
@@ -78,8 +78,8 @@ public class BankSession implements Session, Runnable {
 	     *
 	     */
 
-	    log.write(new LogMessage(LogMessage.Type.AUTH, "Got an AuthInit (" + currAcct.getOwner() +
-				     " on ATM " + atmID + "), sending challenge.", session));
+	    log.write(new AuthMessage("Got an AuthInit (" + currAcct.getOwner() + " on ATM " +
+				      atmID + "), sending challenge.", session));
 
 	    Challenge c = new Challenge(sr.nextInt(), seqNumber++);
 	    os.writeObject( crypto.encryptRSA(c, kPubUser) );
@@ -90,22 +90,22 @@ public class BankSession implements Session, Runnable {
 
 	    Response r = (Response) crypto.decryptRSA(nextObject(), kPrivBank);
 
-	    log.write(new LogMessage(LogMessage.Type.AUTH, "Received response, checking.", session));
+	    log.write(new AuthMessage("Received response, checking.", session));
 
 	    if (ProtocolMessage.verify(a, r) == false) {
 		return false;
 	    } else if (c.nonce != r.nonce) {
-		log.write(new LogMessage(LogMessage.Type.AUTH, "Challenge failed.", session));
+		log.write(new AuthMessage("Challenge failed.", session));
 		return false;
 	    }
 
-	    log.write(new LogMessage(LogMessage.Type.AUTH, "Challenge passed.", session));
+	    log.write(new AuthMessage("Challenge passed.", session));
 
 	    /*
 	     *
 	     */
 
-	    log.write(new LogMessage(LogMessage.Type.AUTH, "Waiting for challenge.", session));
+	    log.write(new AuthMessage("Waiting for challenge.", session));
 
 	    c = (Challenge) crypto.decryptRSA(nextObject(), kPrivBank);
 
@@ -116,19 +116,19 @@ public class BankSession implements Session, Runnable {
 
 	    os.writeObject( crypto.encryptRSA(r, kPubUser) );
 
-	    log.write(new LogMessage(LogMessage.Type.AUTH, "Challenge received and answered.", session));
+	    log.write(new AuthMessage("Challenge received and answered.", session));
 
 	    /*
 	     *
 	     */
 
-	    log.write(new LogMessage(LogMessage.Type.AUTH, "Authenticated, sending session key.", session));
+	    log.write(new AuthMessage("Authenticated, sending session key.", session));
 
 	    kSession = crypto.makeAESKey();
 	    os.writeObject( crypto.encryptRSA(kSession, kPubUser) );
 
-	    log.write(new LogMessage(LogMessage.Type.AUTH, "Initiated session with ACCT#" +
-				     currAcct.getNumber() + " on ATM " + atmID + ".", session));
+	    log.write(new AuthMessage("Initiated session with ACCT#" + currAcct.getNumber() +
+				      " on ATM " + atmID + ".", session));
 
 	    return true;
 
@@ -189,8 +189,7 @@ public class BankSession implements Session, Runnable {
     private boolean doWithdrawal(MakeWithdrawal w)
 	throws SignatureException, KeyException, IOException, TransException {
 
-	log.write(new LogMessage(LogMessage.Type.TRANSACTION, "Withdraw requested (" +
-				 w.withdrawalAmt + ").", session));
+	log.write(new TranMessage("Withdraw requested (" + w.withdrawalAmt + ").", session, w));
 
 	currAcct.withdraw(w.withdrawalAmt);
 
@@ -200,7 +199,7 @@ public class BankSession implements Session, Runnable {
     private boolean doBalance(CheckBalance b)
 	throws SignatureException, KeyException, IOException {
 
-	log.write(new LogMessage(LogMessage.Type.TRANSACTION, "Balance requested.", session));
+	log.write(new TranMessage("Balance requested.", session, b));
 
 	ProtocolMessage pm = new TransactionResponse(currAcct.getBalance(),
 						     seqNumber++);
@@ -214,8 +213,7 @@ public class BankSession implements Session, Runnable {
     private boolean doDeposit(MakeDeposit d)
 	throws SignatureException, KeyException, IOException {
 
-	log.write(new LogMessage(LogMessage.Type.TRANSACTION, "Withdraw requested (" +
-				 d.depositAmt + ").", session));
+	log.write(new TranMessage("Withdraw requested (" + d.depositAmt + ").", session, d));
 
 	currAcct.deposit(d.depositAmt);
 	    
@@ -223,7 +221,7 @@ public class BankSession implements Session, Runnable {
     }
 
     private boolean quit(Quit msg) {
-	log.write(new LogMessage(LogMessage.Type.TRANSACTION, "Session ended by client.", session));
+	log.write(new TranMessage("Session ended by client.", session, msg));
 
 	accts.save();
 
