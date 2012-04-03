@@ -15,7 +15,7 @@ public class ATMClient {
 	try {
 	    PublicKey kBank = (PublicKey)Disk.load(BankServer.pubKeyFile);
 	    while (true) {
-		Socket s = new Socket(args[1], 2100);	    
+		Socket s = new Socket(args[1], 2102);	    
 		ATMCard card = null;
 		// Get the ATMCard from the user
 		try {
@@ -31,6 +31,7 @@ public class ATMClient {
 		    }
 		    System.out.println("Goodbye!");
 		    System.out.println("*****************************");
+		    s.close();
 		} else {
 		    System.out.println("Authentication failed. " +
 				       "Please try again.");

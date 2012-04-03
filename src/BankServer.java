@@ -8,12 +8,12 @@ public class BankServer {
     public static final String keyPairFile = "bank.key";
     public static final String logFile = "bank.log";
     private static KeyPair pair = null;
-    public static Log log = null;
+    //public static Log log = null;
 
     static {
 	try {
 	    pair = (KeyPair)Disk.load(keyPairFile);
-	    log = new Log(logFile, pair.getPublic());
+	    //log = new Log(logFile, pair.getPublic());
 	} catch (IOException e) {
 	    e.printStackTrace();
 	    System.exit(1);
@@ -22,19 +22,21 @@ public class BankServer {
 
 
     public static void main(String[] args) {
+	int thread = 0;
+
 	try {
 	    AccountDB accts = AccountDB.load();
-	    ServerSocket serverS = new ServerSocket(2100);
+	    ServerSocket serverS = new ServerSocket(2102);
 	    System.out.println("--------------------------");
 	    System.out.println("  Bank Server is Running  ");
 	    System.out.println("--------------------------");
 	    while (true) {
 		try {
 		    Socket s = serverS.accept();
-		    BankSession session = new BankSession(s, accts, pair);
+		    BankSession session = new BankSession(s, accts, pair, thread++);
 		    new Thread(session).start();
 		} catch (IOException e) {
-		    log.write(e);
+		    //log.write(e);
 		}
 	    }
 	} catch (IOException e) {

@@ -2,7 +2,6 @@ import java.io.*;
 import java.security.*;
 import java.net.*;
 
-
 public class ATMSession implements Session {
     private Socket s;
     private ObjectOutputStream os;
@@ -19,6 +18,7 @@ public class ATMSession implements Session {
     private Key kSession;
 
     // Additional fields here
+    private int seqNumber;
 
     ATMSession(Socket s, String ID, ATMCard card, PublicKey kBank) {
 	this.s = s;
@@ -39,7 +39,7 @@ public class ATMSession implements Session {
 
     // This method authenticates the user and establishes a session key.
     public boolean authenticateUser() {
-	System.out.println("Please enter your PIN: ");
+	System.out.print("Please enter your PIN: ");
 	
 	// First, the smartcard checks the user's pin to get the 
 	// user's private key.
@@ -51,6 +51,69 @@ public class ATMSession implements Session {
 	}
 
 	// Implement the client half of the authentication protocol here
+	return authenticate();
+    }
+
+    private boolean authenticate() {
+	SecureRandom sr = new SecureRandom();
+	seqNumber = sr.nextInt();
+
+	try {
+
+	    AuthInit a = new AuthInit(card.getAcctNum(), ID, seqNumber++);
+
+	    os.writeObject( crypto.encryptRSA(a, kBank) );
+
+	    /*
+	     *
+	     */
+
+	    Challenge c = (Challenge) crypto.decryptRSA(nextObject(), kUser);
+	    Response r = new Response(c.nonce, seqNumber++);
+
+	    os.writeObject( crypto.encryptRSA(r, kBank) );
+
+	    /*
+	     *
+	     */
+
+	    c = new Challenge(sr.nextInt(), seqNumber++);
+	  
+	    os.writeObject( crypto.encryptRSA(c, kBank) );
+
+	    /*
+	     *
+	     */
+
+	    r = (Response) crypto.decryptRSA(nextObject(), kUser);
+
+	    if (r.nonce != c.nonce)
+		return false;
+
+	    /*
+	     *
+	     */
+
+	    kSession = (Key) crypto.decryptRSA(nextObject(), kUser);
+
+	    System.out.println("Authenticated! Received session key.");
+
+	    TransactionResponse rsp = readSignedMessage();
+
+	    System.out.println(rsp.message);
+
+	    return true;
+	    
+	} catch (KeyException e) {
+	    e.printStackTrace();
+	} catch (IOException e) {
+	    e.printStackTrace();
+	} catch (ClassNotFoundException e) {
+	    e.printStackTrace();
+	} catch (SignatureException e) {
+	    e.printStackTrace();
+	}
+
 	return false;
     }
 
@@ -88,15 +151,100 @@ public class ATMSession implements Session {
     }
 
     void endSession() {
+	try {
+
+	    sendSignedMessage( new Quit(seqNumber++) );
+
+	} catch (SignatureException e) {
+	    e.printStackTrace();
+	} catch (KeyException e) {
+	    e.printStackTrace();
+	} catch (IOException e) {
+	    e.printStackTrace();
+	} 
     }
 
     void doDeposit() {
+	System.out.print("Enter deposit amount: ");
+
+	double amt = getDouble();
+
+	if (amt <= 0) {
+	    System.out.println("Please enter a valid amount!");
+	} else {
+	    
+	    try {
+
+		sendSignedMessage( new MakeDeposit(amt, seqNumber++) );
+		TransactionResponse r = readSignedMessage();
+		
+		if (r.message == null)
+		    System.out.println("Deposit complete; new balance = " + r.balance);
+		else
+		    System.out.println(r.message);
+									    
+	    } catch (SignatureException e) {
+		e.printStackTrace();
+	    } catch (KeyException e) {
+		e.printStackTrace();
+	    } catch (IOException e) {
+		e.printStackTrace();
+	    } catch (ClassNotFoundException e) {
+		e.printStackTrace();
+	    }
+
+	}
     }
 
     void doWithdrawal() {
+	System.out.print("Enter withdrawal amount: ");
+
+	double amt = getDouble();
+
+	if (amt <= 0) {
+	    System.out.println("Please enter a valid amount!");
+	} else {
+	    
+	    try {
+
+		sendSignedMessage( new MakeWithdrawal(amt, seqNumber++) );
+		TransactionResponse r = readSignedMessage();
+
+		if (r.message == null)
+		    System.out.println("Withdraw complete; new balance = " + r.balance);
+		else
+		    System.out.println(r.message);
+
+	    } catch (SignatureException e) {
+		e.printStackTrace();
+	    } catch (KeyException e) {
+		e.printStackTrace();
+	    } catch (IOException e) {
+		e.printStackTrace();
+	    } catch (ClassNotFoundException e) {
+		e.printStackTrace();
+	    }
+
+	}
     }
 
     void doBalance() {
+	try {
+
+	    sendSignedMessage( new CheckBalance(seqNumber++) );
+	    TransactionResponse r = readSignedMessage();
+
+	    System.out.println("Balance = " + r.balance);
+
+	} catch (SignatureException e) {
+	    e.printStackTrace();
+	} catch (KeyException e) {
+	    e.printStackTrace();
+	} catch (IOException e) {
+	    e.printStackTrace();
+	} catch (ClassNotFoundException e) {
+	    e.printStackTrace();
+	}
     }
 
     public boolean doTransaction() {
@@ -110,5 +258,25 @@ public class ATMSession implements Session {
 	default: {System.out.println("Invalid choice.  Please try again.");}
 	}
 	return true;
-    } 
+    }
+
+    private TransactionResponse readSignedMessage() throws SignatureException, ClassNotFoundException,
+							   IOException, KeyException {
+	SignedMessage m = (SignedMessage) crypto.decryptAES(nextObject(), kSession);
+
+	if (crypto.verify(m.msg, m.signature, kBank) == false)
+	    throw new SignatureException();
+
+	return (TransactionResponse) m.getObject();
+    }
+
+    private void sendSignedMessage(ProtocolMessage pm) throws SignatureException, KeyException, IOException {
+	Message m = new SignedMessage(pm, kUser, crypto);
+
+	os.writeObject( crypto.encryptAES(m, kSession) );
+    }
+
+    private byte[] nextObject() throws IOException, ClassNotFoundException {
+	return (byte[]) is.readObject();
+    }
 }

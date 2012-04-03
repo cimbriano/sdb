@@ -23,7 +23,19 @@ CLASSES = TransException.class \
           MakeAccounts.class \
           Message.class \
           Session.class \
-          SignedMessage.class 
+          SignedMessage.class \
+          ProtocolMessage.class \
+          AuthInit.class \
+          Challenge.class \
+          Response.class \
+          MakeDeposit.class \
+          MakeWithdrawal.class \
+          CheckBalance.class \
+          Quit.class \
+          TransactionResponse.class \
+          LogMessage.class \
+          AuthMessage.class \
+          TranMessage.class
 
 .PHONY: all clean
 
