@@ -9,9 +9,9 @@ public class Log implements LogInterface {
 
     // You may add more state here.
     private static PublicKey kPub;
-
     private static FileOutputStream fos;
     private static ObjectOutputStream oos;
+    private static Log instance;
 
     public Log(PublicKey key) {
 	try {
@@ -25,6 +25,13 @@ public class Log implements LogInterface {
 	}
     }
 
+    public static synchronized Log getInstance(PublicKey key) {
+	if (instance == null)
+	    instance = new Log(key);
+
+	return instance;
+    }
+
     public Log() {
 	try {
 	    this.crypto = new Crypto();
@@ -35,6 +42,13 @@ public class Log implements LogInterface {
 	    e.printStackTrace();
 	    System.exit(1);
 	}
+    }
+
+    public static synchronized Log getInstance() {
+	if (instance == null)
+	    instance = new Log();
+
+	return instance;
     }
 
     public static synchronized void read(PrivateKey key) throws IOException, ClassNotFoundException {
@@ -54,7 +68,7 @@ public class Log implements LogInterface {
 	} catch (KeyException e) {
 	    e.printStackTrace();
 	} catch (EOFException e) {
-	    //EOF -- do nothing, don't throw exception
+	    //EOF -- do nothing, don't throw the exception
 	} finally {
 	    ois.close();
 	    fis.close();

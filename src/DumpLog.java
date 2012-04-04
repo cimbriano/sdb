@@ -14,7 +14,7 @@ public class DumpLog {
     }	
 
     public static void main(String args[]) {
-	Log log = new Log();
+	Log log = Log.getInstance();
 
 	try {
 	    log.read(pair.getPrivate());
