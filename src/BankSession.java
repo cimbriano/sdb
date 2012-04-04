@@ -79,8 +79,8 @@ public class BankSession implements Session, Runnable {
 	     *
 	     */
 
-	    log.write(new AuthMessage("Got an AuthInit (" + currAcct.getOwner() + " on ATM " + atmID +
-				      "), sending challenge.", session), kSession);
+	    log.write(new AuthMessage("Got an AuthInit (" + currAcct.getOwner() + " on ATM " + atmID + "), sending challenge.", session),
+		      kSession);
 
 	    Challenge c = new Challenge(sr.nextInt(), seqNumber++);
 	    os.writeObject( crypto.encryptRSA(c, kPubUser) );

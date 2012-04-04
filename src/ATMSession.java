@@ -61,7 +61,6 @@ public class ATMSession implements Session {
 	try {
 
 	    AuthInit a = new AuthInit(card.getAcctNum(), ID, seqNumber++);
-
 	    os.writeObject( crypto.encryptRSA(a, kBank) );
 
 	    /*
@@ -70,15 +69,13 @@ public class ATMSession implements Session {
 
 	    Challenge c = (Challenge) crypto.decryptRSA(nextObject(), kUser);
 	    Response r = new Response(c.nonce, seqNumber++);
-
 	    os.writeObject( crypto.encryptRSA(r, kBank) );
 
 	    /*
 	     *
 	     */
 
-	    c = new Challenge(sr.nextInt(), seqNumber++);
-	  
+	    c = new Challenge(sr.nextInt(), seqNumber++);	  
 	    os.writeObject( crypto.encryptRSA(c, kBank) );
 
 	    /*
@@ -99,7 +96,6 @@ public class ATMSession implements Session {
 	    System.out.println("Authenticated! Received session key.");
 
 	    TransactionResponse rsp = readSignedMessage();
-
 	    System.out.println(rsp.message);
 
 	    return true;
@@ -153,7 +149,7 @@ public class ATMSession implements Session {
     void endSession() {
 	try {
 
-	    sendSignedMessage( new Quit(seqNumber++) );
+	    sendSignedMessage(new Quit(seqNumber++));
 
 	} catch (SignatureException e) {
 	    e.printStackTrace();
@@ -175,7 +171,7 @@ public class ATMSession implements Session {
 	    
 	    try {
 
-		sendSignedMessage( new MakeDeposit(amt, seqNumber++) );
+		sendSignedMessage(new MakeDeposit(amt, seqNumber++));
 		TransactionResponse r = readSignedMessage();
 		
 		if (r.message == null)
@@ -207,7 +203,7 @@ public class ATMSession implements Session {
 	    
 	    try {
 
-		sendSignedMessage( new MakeWithdrawal(amt, seqNumber++) );
+		sendSignedMessage(new MakeWithdrawal(amt, seqNumber++));
 		TransactionResponse r = readSignedMessage();
 
 		if (r.message == null)
@@ -231,7 +227,7 @@ public class ATMSession implements Session {
     void doBalance() {
 	try {
 
-	    sendSignedMessage( new CheckBalance(seqNumber++) );
+	    sendSignedMessage(new CheckBalance(seqNumber++));
 	    TransactionResponse r = readSignedMessage();
 
 	    System.out.println("Balance = " + r.balance);
