@@ -45,9 +45,12 @@ public class Log implements LogInterface {
 
     public void write(Serializable obj) {
 	try {
-	    byte[] e = crypto.encryptRSA(obj, kPub);
+	    byte[] e = crypto.encryptRSA(new LogMessageHeader(aesSessionKey), kPub);
+	    byte[] o = crypto.encryptAES(obj, aesSessionKey);
 
 	    Disk.append(e, file);
+	    Disk.append(o, file);
+	    
 	} catch (IOException e) {
 	    e.printStackTrace();
 	} catch (KeyException e) {
@@ -55,7 +58,7 @@ public class Log implements LogInterface {
 	}
     }
     
-    private class LogMessageHeader {
+    private class LogMessageHeader implements Serializable {
         private Key sessionKey;
         private long salt;
         
