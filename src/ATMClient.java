@@ -15,7 +15,7 @@ public class ATMClient {
 	try {
 	    PublicKey kBank = (PublicKey)Disk.load(BankServer.pubKeyFile);
 	    while (true) {
-		Socket s = new Socket(args[1], 2100);	    
+		Socket s = new Socket(args[1], 2105);	    
 		ATMCard card = null;
 		// Get the ATMCard from the user
 		try {
