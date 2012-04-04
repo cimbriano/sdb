@@ -18,7 +18,7 @@ elif [ "$1" = "bank" ]; then
     cd ./bin
     java BankServer
 elif [ "$1" = "log" ]; then
-    if [ 2 -le $# ]; then
+    if [ 2 -eq $# ]; then
 	cd ./bin
 	java DumpLog | grep $2
     else

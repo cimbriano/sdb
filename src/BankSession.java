@@ -128,7 +128,6 @@ public class BankSession implements Session, Runnable {
 	     */
 
 	    log.write(new AuthMessage("Authenticated, sending session key.", session), kSession);
-
 	    
 	    os.writeObject( crypto.encryptRSA(kSession, kPubUser) );
 
@@ -240,9 +239,7 @@ public class BankSession implements Session, Runnable {
 	return false;
     }
 
-    private void sendSignedMessage(ProtocolMessage pm)
-	throws IOException, KeyException, SignatureException {
-
+    private void sendSignedMessage(ProtocolMessage pm) throws IOException, KeyException, SignatureException {
 	Message m = new SignedMessage(pm, kPrivBank, crypto);
 	os.writeObject( crypto.encryptAES(m, kSession) );
     }
