@@ -1,0 +1,78 @@
+CIS 551 : Spring 2012
+Project 3
+Secure Distributed Banking
+Chis Imbriano
+Dustin Zelle
+
+
+* Describe contents of the directory.
+
+Directory Structure
+
++ bin   - Compiled java classes
++ lib   - External libraries needed for project
++ src   - Source files (both ours and those provided)
++ doc   - README, Project Report
+demo    - Script to install project and demonstrate functionality
+ 
+
+Installation
+
+* Run './demo install' from the root of the project.  This will compile the classes into the bin folder.
+
+* Run './demo bank' to start a BankServer
+
+* Run './demo atm <atm#> <host>' to start an atm with atm number <atm#> and host <host>.  If the bank and atm servers are 
+        local, use 'localhost' for the <host> parameter.
+
+
+
+Requirements and Protocol Description
+1. Authentication Algorithm
+    * Meet criteria outlined (in assignment spec)
+
+    * ATM should verify Bank's authenticity
+    * ATM should obtain account owner's name (display it)
+    * Establish AES session key
+    * Server should verify user's authenticity
+    * Obtain account number
+    * Obtain ATM identifier
+    * Establish shared session key with ATM
+    * Based on RSA encryption
+    
+    
+    
+    
+2. Transaction Protocol
+    * Meets criteria for confidentiality
+    
+    * No attack may modify or read contents of the transactions
+    * Bank should obtain enough information during a transaction to convince a third party
+       that the transaction was initiated by the user
+    * Based on AES encryption and RSA signatures
+
+3. Cryptographic Audit Log
+    * Protected against unauthorized disk accesses
+    * Only BankServer uses the log
+    * Justify the information recorded in the log
+    
+
+Threat Types and Mitigation
+
+* Passive Attacker
+  - Read Meassages
+
+* Active Attacker
+  - Replay attacks
+  - Changed messages
+  - New messages generated
+
+* Insecure log storage
+  - Unauthorized Read
+  - 
+
+1. Authorship considered suspect
+2. Deleted Messages
+3. 
+
+

@@ -1,0 +1,28 @@
+Contributions
+
+Together we spent a couple hours reading through the project specification
+   and drawing out an architecture/protocol diagram that would satisfy the requirements
+   
+Dustin then spent about 5 hours implementing the authentication, transaction and some of the logging protocols we designed.
+
+We then met to finalize discussions of how the logging would be handled to 
+  satisfy non-repudiation and completed its implementation.
+  
+Dustin spent some more time implementing the log reading extra credit feature, while
+  Chris focused on the written requirements.
+
+
+Time Estimate
+
+Chris
+1.5 - Documentation
+
+ + mutual
+
+
+Dustin
+5 + log reading + mutual
+
+Mutual:
+2.5 hours - Intial design
+2 hours   - Non-repudiation design and implementation
