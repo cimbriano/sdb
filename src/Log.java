@@ -1,31 +1,76 @@
 import java.security.*;
-import java.io.IOException;
-import java.io.Serializable;
+import java.io.*;
 
 import java.text.*;
 
 public class Log implements LogInterface {
-
-    private String file;
-    private Crypto crypto;
+    private static final String file = BankServer.logFile;
+    private static Crypto crypto;
 
     // You may add more state here.
-    private PublicKey kPub;
-    private Key aesSessionKey;
+    private static PublicKey kPub;
 
-    public Log(String file, PublicKey key, Key sessionKey) {
+    private static FileOutputStream fos;
+    private static ObjectOutputStream oos;
+
+    public Log(PublicKey key) {
 	try {
 	    this.crypto = new Crypto();
-	    this.file = file;
 	    this.kPub = key;
-	    this.aesSessionKey = sessionKey;
+	    this.fos = new FileOutputStream(file);
+	    this.oos = new ObjectOutputStream(fos);
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.exit(1);
 	}
     }
 
-    public void write(LogMessage msg) {
+    public Log() {
+	try {
+	    this.crypto = new Crypto();
+	    this.kPub = null;
+	    this.fos = null;
+	    this.oos = null;
+	} catch (Exception e) {
+	    e.printStackTrace();
+	    System.exit(1);
+	}
+    }
+
+    public static synchronized void read(PrivateKey key) throws IOException, ClassNotFoundException {
+	FileInputStream fis = new FileInputStream(file);
+	ObjectInputStream ois = new ObjectInputStream(fis);
+
+	try {
+	    while (true) {
+		byte[] e = (byte[]) ois.readObject();
+		LogMessageHeader h = (LogMessageHeader) crypto.decryptRSA(e, key);
+
+		//System.out.println(h.kSession);
+		
+		e = (byte[]) ois.readObject();
+		LogMessage m = (LogMessage) crypto.decryptAES(e, h.kSession);
+
+		write(m);
+	    }
+	} catch (KeyException e) {
+	    e.printStackTrace();
+	} catch (EOFException e) {
+	    System.out.println("EOF!");
+	} finally {
+	    ois.close();
+	    fis.close();
+	}	
+    }
+
+    public static synchronized void write(LogMessage msg, Key kSession) {
+	if (kPub != null && fos != null && oos != null)
+	    write((Serializable) msg, kSession);
+
+	write(msg);
+    }
+
+    private static void write(LogMessage msg) {
 	SimpleDateFormat f = new SimpleDateFormat("MM/dd/yy kk:mm:ss");
 
 	System.out.print("(" + msg.session + ") ");
@@ -39,36 +84,26 @@ public class Log implements LogInterface {
 	    System.out.print("[    ]");
 
 	System.out.println(" " + msg.message);
-
-	write( (Serializable) msg );
     }
 
-    public void write(Serializable obj) {
+    private static void write(Serializable obj, Key kSession) {
 	try {
-	    byte[] e = crypto.encryptRSA(new LogMessageHeader(aesSessionKey), kPub);
-	    byte[] o = crypto.encryptAES(obj, aesSessionKey);
+	    LogMessageHeader h = new LogMessageHeader(kSession);
 
-	    Disk.append(e, file);
-	    Disk.append(o, file);
-	    
+	    byte[] e = crypto.encryptRSA(h, kPub);
+	    byte[] o = crypto.encryptAES(obj, kSession);
+
+	    oos.writeObject(e);
+	    oos.writeObject(o);	    
 	} catch (IOException e) {
 	    e.printStackTrace();
 	} catch (KeyException e) {
 	    e.printStackTrace();
 	}
     }
-    
-    private class LogMessageHeader implements Serializable {
-        private Key sessionKey;
-        private long salt;
-        
-        public LogMessageHeader(Key sessionKey){
-                SecureRandom sr = new SecureRandom();
-        
-                this.sessionKey = sessionKey;
-                salt = sr.nextLong();
-        }
-        
-    }
 
+    public static void close() throws IOException {
+	oos.close();
+	fos.close();
+    }
 }

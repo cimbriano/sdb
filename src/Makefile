@@ -35,7 +35,9 @@ CLASSES = TransException.class \
           TransactionResponse.class \
           LogMessage.class \
           AuthMessage.class \
-          TranMessage.class
+          TranMessage.class \
+          DumpLog.class \
+          LogMessageHeader.class
 
 .PHONY: all clean
 
