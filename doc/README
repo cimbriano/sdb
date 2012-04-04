@@ -41,6 +41,15 @@ Requirements and Protocol Description
     * Based on RSA encryption
     
     
+    a) Customer inserts ATMCard into ATM and enters PIN to verify ownership of Private Key
+    b) ATM sends BankServer AuthInit Message on behalf of the Customer.
+      i) Included in this message are:
+          * ATM Identifier
+          * Account number of the customer
+    c) Bank issues challenge to Customer
+      i) Challenge message is signed by the public key of the Customer
+    d) ATM Session recieves Challenge and 
+    
     
     
 2. Transaction Protocol
