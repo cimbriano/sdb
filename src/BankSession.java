@@ -34,7 +34,8 @@ public class BankSession implements Session, Runnable {
 	this.kPrivBank = p.getPrivate();
 	this.kPubBank = p.getPublic();
 	this.crypto = new Crypto();
-	this.log = new Log(BankServer.logFile, this.kPubBank);
+	this.kSession = crypto.makeAESKey();
+	this.log = new Log(BankServer.logFile, this.kPubBank, kSession);
 	this.session = session;
 	this.prevMsg = null;
     }
@@ -127,7 +128,7 @@ public class BankSession implements Session, Runnable {
 
 	    log.write(new AuthMessage("Authenticated, sending session key.", session));
 
-	    kSession = crypto.makeAESKey();
+	    
 	    os.writeObject( crypto.encryptRSA(kSession, kPubUser) );
 
 	    log.write(new AuthMessage("Initiated session with ACCT#" + currAcct.getNumber() +
