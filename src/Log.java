@@ -11,12 +11,14 @@ public class Log implements LogInterface {
 
     // You may add more state here.
     private PublicKey kPub;
+    private Key aesSessionKey;
 
-    public Log(String file, PublicKey key) {
+    public Log(String file, PublicKey key, Key sessionKey) {
 	try {
 	    this.crypto = new Crypto();
 	    this.file = file;
 	    this.kPub = key;
+	    this.aesSessionKey = sessionKey;
 	} catch (Exception e) {
 	    e.printStackTrace();
 	    System.exit(1);
@@ -51,6 +53,19 @@ public class Log implements LogInterface {
 	} catch (KeyException e) {
 	    e.printStackTrace();
 	}
+    }
+    
+    private class LogMessageHeader {
+        private Key sessionKey;
+        private long salt;
+        
+        public LogMessageHeader(Key sessionKey){
+                SecureRandom sr = new SecureRandom();
+        
+                this.sessionKey = sessionKey;
+                salt = sr.nextLong();
+        }
+        
     }
 
 }
