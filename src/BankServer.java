@@ -1,4 +1,5 @@
 import java.security.*;
+import java.lang.management.*;
 import java.io.*;
 import java.net.*;
 
@@ -20,7 +21,8 @@ public class BankServer {
     }
 
     public static void main(String[] args) {
-	int thread = 0;
+	String name = ManagementFactory.getRuntimeMXBean().getName();
+	int pid = Integer.valueOf(name.substring(0, name.indexOf("@")));
 
 	try {
 	    AccountDB accts = AccountDB.load();
@@ -31,7 +33,7 @@ public class BankServer {
 	    while (true) {
 		try {
 		    Socket s = serverS.accept();
-		    BankSession session = new BankSession(s, accts, pair, thread++, log);
+		    BankSession session = new BankSession(s, accts, pair, pid++, log);
 		    new Thread(session).start();
 		} catch (IOException e) {
 		    e.printStackTrace();
