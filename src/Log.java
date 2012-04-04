@@ -45,8 +45,6 @@ public class Log implements LogInterface {
 	    while (true) {
 		byte[] e = (byte[]) ois.readObject();
 		LogMessageHeader h = (LogMessageHeader) crypto.decryptRSA(e, key);
-
-		//System.out.println(h.kSession);
 		
 		e = (byte[]) ois.readObject();
 		LogMessage m = (LogMessage) crypto.decryptAES(e, h.kSession);
@@ -56,7 +54,7 @@ public class Log implements LogInterface {
 	} catch (KeyException e) {
 	    e.printStackTrace();
 	} catch (EOFException e) {
-	    System.out.println("EOF!");
+	    //EOF -- do nothing, don't throw exception
 	} finally {
 	    ois.close();
 	    fis.close();

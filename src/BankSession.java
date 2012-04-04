@@ -121,7 +121,7 @@ public class BankSession implements Session, Runnable {
 
 	    log.write(new AuthMessage("Challenge received and answered.", session), kSession);
 
-	    prevMsg = c;//save the last message seen from client
+	    prevMsg = c;//save the last message seen from the client
 
 	    /*
 	     *
@@ -132,15 +132,14 @@ public class BankSession implements Session, Runnable {
 	    
 	    os.writeObject( crypto.encryptRSA(kSession, kPubUser) );
 
-	    log.write(new AuthMessage("Initiated session with ACCT#" + currAcct.getNumber() +
-				      " on ATM " + atmID + ".", session), kSession);
+	    log.write(new AuthMessage("Initiated session with ACCT#" + currAcct.getNumber() + " on ATM " + atmID + ".", session),
+		      kSession);
 
 	    /*
 	     * Send welcome message to client
 	     */
 
-	    sendSignedMessage( new TransactionResponse("Welcome " + currAcct.getOwner() + "!",
-						       currAcct.getBalance(), seqNumber++) );
+	    sendSignedMessage(new TransactionResponse("Welcome " + currAcct.getOwner() + "!", currAcct.getBalance(), seqNumber++));
 
 	    return true;
 
@@ -210,7 +209,7 @@ public class BankSession implements Session, Runnable {
 	try {
 	    currAcct.withdraw(w.withdrawalAmt);
 	} catch (TransException e) {	    
-	    sendSignedMessage( new TransactionResponse(e.getMessage(), currAcct.getBalance(), seqNumber++) );
+	    sendSignedMessage(new TransactionResponse(e.getMessage(), currAcct.getBalance(), seqNumber++));
 	    return true;
 	}
 
@@ -220,7 +219,7 @@ public class BankSession implements Session, Runnable {
     private boolean doBalance(CheckBalance b, SignedMessage m) throws SignatureException, KeyException, IOException {
 	log.write(new TranMessage("Balance requested.", session, m), kSession);
 
-	sendSignedMessage( new TransactionResponse(currAcct.getBalance(), seqNumber++) );
+	sendSignedMessage(new TransactionResponse(currAcct.getBalance(), seqNumber++));
 	
 	return true;
     }
