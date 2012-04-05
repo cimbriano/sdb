@@ -25,6 +25,8 @@ Installation
 * Run './demo atm <atm#> <host>' to start an atm with atm number <atm#> and host <host>.  If the bank and atm servers are 
         local, use 'localhost' for the <host> parameter.
 
+* Run './demo log <regexp>' to dump the contents of the log to stdout.
+
 
 
 Requirements and Protocol Description
