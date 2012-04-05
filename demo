@@ -4,7 +4,9 @@ export CLASSPATH=../lib/bcprov-jdk15on-147.jar:.
 export USAGE="Usage: $0 [install | make-accounts | atm <atm#> <host> | bank | log <regexp>]"
 
 if [ "$1" = "install" ]; then
-    cd ./src
+    cd ./bin
+    rm *.class
+    cd ../src
     make
     mv *class ../bin
 elif [ "$1" = "atm" ]; then
