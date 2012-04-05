@@ -96,12 +96,42 @@ Requirements and Mechanism Overview
     * Bank should obtain enough information during a transaction to convince a third party
        that the transaction was initiated by the user
     * Based on AES encryption and RSA signatures
+    
+    
+    a) ATM sends one of
+        * MakeDeposit
+        * MakeWithdrawal
+        * CheckBalance
+        * Quit
+        
+        i) The Message is signed with the Customers PrivateKey
+        ii) The Message is encrypted with the AES Session Key
+    
+    b) Bank Receives message, takes the requested action and 
+        sends message to ATM indicating balance for all transactions requested
+        
+        i) Message is signed by the Banks PrivateKey
+        ii) Message is encrypted by the AES Session Key
+        
 
 3. Cryptographic Audit Log
     * Protected against unauthorized disk accesses
     * Only BankServer uses the log
     * Justify the information recorded in the log
     
+    Every logged message is actually two lines of content.
+    1st line - RSA encryption using Banks public Key of the AES Session key for that message
+    2nd line - SignedMessage being logged (encrypted by the AES Session key in the first line)
+    
+    
+    Authentication Logging
+    
+    All of the messages received by the BankServer are logged. 
+    These messages     
+    
+    
+    Transaction Protocol Logging
+        
 
 Threat Types and Mitigation
 
