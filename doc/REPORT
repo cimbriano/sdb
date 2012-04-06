@@ -1,37 +1,8 @@
-Contributions
-
-Together we spent a couple hours reading through the project specification
-   and drawing out an architecture/protocol diagram that would satisfy the requirements
-   
-Dustin then spent about 5 hours implementing the authentication, transaction and some of the logging protocols we designed.
-
-We then met to finalize discussions of how the logging would be handled to 
-  satisfy non-repudiation and completed its implementation.
-  
-Dustin spent some more time implementing the log reading extra credit feature, while
-  Chris focused on the written requirements.
-
-
-Time Estimate
-
-Chris
-2.5 - Documentation + Writeup
-
- + mutual
-
-
-Dustin
-5 - Implementation
-? - Log reading (Extra Credit)
-
-Mutual:
-2.5 hours - Intial design
-2 hours   - Non-repudiation design and implementation
-
-
-
-
-
+CIS 551 : Spring 2012
+Project 3
+Secure Distributed Banking
+Chis Imbriano
+Dustin Zelle
 
 Requirements and Mechanism Overview
 1. Authentication Algorithm
@@ -176,10 +147,46 @@ Threat Types and Mitigation
   In the limit of there only being one session's logs stored, the could be a lot of content encrypted with the same session key,
         but under normal and prolonged use, the log should have interleaving appends from various session, all using 
         different session keys for encrypting.
-        
 
   
   - Non-repudiation  
 
   Log messages are signed by the sender. Therefore, if a third party were to be provided the log, they could
-        verify the source of each message.      
+        verify the source of each message.   
+        
+        
+        
+        
+
+Contributions
+
+Together we spent a couple hours reading through the project specification
+   and drawing out an architecture/protocol diagram that would satisfy the requirements
+   
+Dustin then spent about 5 hours implementing the authentication, transaction and some of the logging protocols we designed.
+
+We then met to finalize discussions of how the logging would be handled to 
+  satisfy non-repudiation and completed its implementation.
+  
+Dustin spent some more time implementing the log reading extra credit feature, while
+  Chris focused on the written requirements.
+
+
+
+
+Time Estimate
+
+Dustin
+5 - Implementation
+1.5 - Log reading (Extra Credit)
+
+Chris
+2.5 - Documentation + Writeup
+
+
+Mutual:
+2.5 hours - Intial design
+2 hours   - Non-repudiation design and implementation
+
+
+   
